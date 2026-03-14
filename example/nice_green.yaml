@@ -1,0 +1,30 @@
+app:
+  name: LavaLamp
+  bundleId: com.lavalamp.LavaLamp
+  running: true
+  pid: 21929
+color:
+  hex: "#CCF728"
+  r: 0.8005273627505549
+  g: 0.9682041337933454
+  b: 0.1552435985283568
+speed:
+  value: 0.75
+  label: custom
+size:
+  pixelScale: 2
+  label: medium
+window:
+  x: ~
+  y: ~
+grid:
+  width: 48
+  height: 120
+simulation:
+  blobCount: 5
+title:
+  text: "$time"
+  font: Menlo
+  fontSize: 10
+http:
+  port: 9999
