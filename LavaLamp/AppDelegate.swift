@@ -7,6 +7,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController!
 
     private var pixelScale: CGFloat = LampConfig.defaultPixelScale
+    private var titleLabel: NSTextField!
+    private var titleText: String = ""
+    private var titleFontName: String = "Helvetica"
+    private var titleFontSize: CGFloat = 12.0
 
     // UserDefaults keys
     private let kWindowX = "windowPositionX"
@@ -16,6 +20,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let kLavaColorB = "lavaColorB"
     private let kSpeed = "speed"
     private let kPixelScale = "pixelScale"
+    private let kTitle = "title"
+    private let kTitleFont = "titleFont"
+    private let kTitleFontSize = "titleFontSize"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Register URL scheme handler directly via Apple Events
@@ -46,11 +53,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if defaults.object(forKey: kPixelScale) != nil {
             pixelScale = CGFloat(defaults.double(forKey: kPixelScale))
         }
+        if let saved = defaults.string(forKey: kTitle) {
+            titleText = saved
+        }
+        if let saved = defaults.string(forKey: kTitleFont) {
+            titleFontName = saved
+        }
+        if defaults.object(forKey: kTitleFontSize) != nil {
+            titleFontSize = CGFloat(defaults.double(forKey: kTitleFontSize))
+        }
+    }
+
+    private var titleAreaHeight: CGFloat {
+        titleText.isEmpty ? 0 : titleFontSize + 8
     }
 
     private func setupWindow() {
         let windowWidth = CGFloat(LampConfig.gridWidth) * pixelScale
-        let windowHeight = CGFloat(LampConfig.gridHeight) * pixelScale
+        let lampHeight = CGFloat(LampConfig.gridHeight) * pixelScale
+        let windowHeight = lampHeight + titleAreaHeight
 
         let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 800, height: 600)
         let windowRect = NSRect(
@@ -65,8 +86,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupScene() {
         let windowWidth = CGFloat(LampConfig.gridWidth) * pixelScale
-        let windowHeight = CGFloat(LampConfig.gridHeight) * pixelScale
-        let sceneSize = CGSize(width: windowWidth, height: windowHeight)
+        let lampHeight = CGFloat(LampConfig.gridHeight) * pixelScale
+        let sceneSize = CGSize(width: windowWidth, height: lampHeight)
 
         scene = LavaLampScene(size: sceneSize)
         scene.scaleMode = .aspectFill
@@ -85,11 +106,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             scene.speedMultiplier = CGFloat(defaults.double(forKey: kSpeed))
         }
 
-        let skView = SKView(frame: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight))
+        // Container view holds the SKView and title label
+        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: windowWidth, height: lampHeight + titleAreaHeight))
+
+        let skView = SKView(frame: NSRect(x: 0, y: titleAreaHeight, width: windowWidth, height: lampHeight))
         skView.allowsTransparency = true
         skView.presentScene(scene)
+        containerView.addSubview(skView)
 
-        window.contentView = skView
+        // Title label below the lamp
+        titleLabel = NSTextField(labelWithString: titleText)
+        titleLabel.frame = NSRect(x: 0, y: 0, width: windowWidth, height: titleAreaHeight)
+        titleLabel.alignment = .center
+        titleLabel.textColor = .white
+        titleLabel.backgroundColor = .clear
+        titleLabel.isBezeled = false
+        titleLabel.isEditable = false
+        titleLabel.font = NSFont(name: titleFontName, size: titleFontSize) ?? NSFont.systemFont(ofSize: titleFontSize)
+        titleLabel.isHidden = titleText.isEmpty
+        containerView.addSubview(titleLabel)
+
+        window.contentView = containerView
         window.makeKeyAndOrderFront(nil)
     }
 
@@ -189,11 +226,68 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 UserDefaults.standard.set(Double(speed), forKey: kSpeed)
             }
 
+        case "set-title":
+            if let text = params.first(where: { $0.name == "text" })?.value {
+                titleText = text
+                UserDefaults.standard.set(text, forKey: kTitle)
+                updateTitleDisplay()
+            }
+
+        case "set-title-font":
+            if let font = params.first(where: { $0.name == "name" })?.value {
+                titleFontName = font
+                UserDefaults.standard.set(font, forKey: kTitleFont)
+                updateTitleDisplay()
+            }
+
+        case "set-title-font-size":
+            if let sizeStr = params.first(where: { $0.name == "value" })?.value,
+               let size = Double(sizeStr) {
+                titleFontSize = CGFloat(size)
+                UserDefaults.standard.set(size, forKey: kTitleFontSize)
+                updateTitleDisplay()
+            }
+
         case "quit":
             NSApplication.shared.terminate(nil)
 
         default:
             break
+        }
+    }
+
+    private func updateTitleDisplay() {
+        let oldTitleHeight = titleLabel.isHidden ? CGFloat(0) : titleLabel.frame.height
+        let newTitleHeight = titleAreaHeight
+
+        titleLabel.stringValue = titleText
+        titleLabel.font = NSFont(name: titleFontName, size: titleFontSize) ?? NSFont.systemFont(ofSize: titleFontSize)
+        titleLabel.isHidden = titleText.isEmpty
+
+        // Resize window and reposition views if title area height changed
+        if oldTitleHeight != newTitleHeight {
+            let windowWidth = window.frame.width
+            let lampHeight = CGFloat(LampConfig.gridHeight) * pixelScale
+            let newWindowHeight = lampHeight + newTitleHeight
+
+            let newRect = NSRect(
+                x: window.frame.origin.x,
+                y: window.frame.origin.y + window.frame.height - newWindowHeight,
+                width: windowWidth,
+                height: newWindowHeight
+            )
+            window.setFrame(newRect, display: false)
+
+            if let container = window.contentView {
+                container.frame = NSRect(x: 0, y: 0, width: windowWidth, height: newWindowHeight)
+                for subview in container.subviews {
+                    if let skView = subview as? SKView {
+                        skView.frame = NSRect(x: 0, y: newTitleHeight, width: windowWidth, height: lampHeight)
+                    }
+                }
+            }
+
+            titleLabel.frame = NSRect(x: 0, y: 0, width: windowWidth, height: newTitleHeight)
         }
     }
 
@@ -245,7 +339,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(Double(scale), forKey: kPixelScale)
 
         let newWidth = CGFloat(LampConfig.gridWidth) * scale
-        let newHeight = CGFloat(LampConfig.gridHeight) * scale
+        let lampHeight = CGFloat(LampConfig.gridHeight) * scale
+        let newHeight = lampHeight + titleAreaHeight
 
         // Keep center position
         let oldCenter = NSPoint(
@@ -263,7 +358,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.setFrame(newRect, display: false)
 
         // Recreate scene at new size
-        let sceneSize = CGSize(width: newWidth, height: newHeight)
+        let sceneSize = CGSize(width: newWidth, height: lampHeight)
         let oldColor = scene.lavaColor
         let oldSpeed = scene.speedMultiplier
 
@@ -273,9 +368,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         scene.lavaColor = oldColor
         scene.speedMultiplier = oldSpeed
 
-        if let skView = window.contentView as? SKView {
-            skView.frame = NSRect(x: 0, y: 0, width: newWidth, height: newHeight)
-            skView.presentScene(scene)
+        if let container = window.contentView {
+            container.frame = NSRect(x: 0, y: 0, width: newWidth, height: newHeight)
+            for subview in container.subviews {
+                if let skView = subview as? SKView {
+                    skView.frame = NSRect(x: 0, y: titleAreaHeight, width: newWidth, height: lampHeight)
+                    skView.presentScene(scene)
+                }
+            }
+            titleLabel.frame = NSRect(x: 0, y: 0, width: newWidth, height: titleAreaHeight)
         }
     }
 }

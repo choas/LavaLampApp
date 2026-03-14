@@ -10,9 +10,13 @@
 #   lavalampctl set-color 0.2 0.4 1.0  Set color by RGB floats (0.0-1.0)
 #   lavalampctl random-color           Pick a random color
 #   lavalampctl set-speed slow         Set speed (slow/normal/fast or float)
+#   lavalampctl set-title "My Lamp"   Set title below the lamp
+#   lavalampctl set-title-font Menlo  Set title font name
+#   lavalampctl set-title-font-size 14 Set title font size
 #   lavalampctl quit                   Quit the app
 #   lavalampctl about                  Show app info
 #   lavalampctl stats [--json|--yaml|--txt|--md]  Show lamp stats
+#   cat config.yaml | lavalampctl setup          Apply config from stdin
 
 set -euo pipefail
 
@@ -34,10 +38,15 @@ Commands:
   set-color <r> <g> <b>      Set color by RGB floats (0.0-1.0)
   random-color               Pick a random harmonious color
   set-speed <value>          Set speed: slow, normal, fast, or a float
+  set-title <text>           Set title below the lamp (empty to clear)
+  set-title-font <name>      Set title font name (e.g. Menlo, Helvetica)
+  set-title-font-size <size> Set title font size (e.g. 14)
   quit                       Quit the app
   about                      Show app info
   stats [--json|--yaml|--txt|--md]
                              Show lamp stats (default: --txt)
+  setup                      Apply config from stdin (YAML or JSON)
+                             e.g. cat config.yaml | lavalampctl setup
 EOF
     exit 1
 }
@@ -70,6 +79,29 @@ case "$command" in
         fi
         open_url "${SCHEME}://set-speed?value=$1"
         ;;
+    set-title)
+        if [ $# -lt 1 ]; then
+            echo "Error: set-title requires a text value (use '' to clear)"
+            exit 1
+        fi
+        encoded=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$*'))")
+        open_url "${SCHEME}://set-title?text=${encoded}"
+        ;;
+    set-title-font)
+        if [ $# -ne 1 ]; then
+            echo "Error: set-title-font requires a font name"
+            exit 1
+        fi
+        encoded=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$1'))")
+        open_url "${SCHEME}://set-title-font?name=${encoded}"
+        ;;
+    set-title-font-size)
+        if [ $# -ne 1 ]; then
+            echo "Error: set-title-font-size requires a numeric size"
+            exit 1
+        fi
+        open_url "${SCHEME}://set-title-font-size?value=$1"
+        ;;
     stats)
         BUNDLE_ID="com.lavalamp.LavaLamp"
         FORMAT="${1:---txt}"
@@ -95,8 +127,14 @@ case "$command" in
         pixel_scale=$(read_default "pixelScale")
         window_x=$(read_default "windowPositionX")
         window_y=$(read_default "windowPositionY")
+        title=$(read_default "title")
+        title_font=$(read_default "titleFont")
+        title_font_size=$(read_default "titleFontSize")
 
         # Defaults if not set
+        title="${title:-}"
+        title_font="${title_font:-Helvetica}"
+        title_font_size="${title_font_size:-12}"
         color_r="${color_r:-1}"
         color_g="${color_g:-0.4}"
         color_b="${color_b:-0}"
@@ -167,6 +205,11 @@ case "$command" in
   },
   "simulation": {
     "blobCount": $blob_count
+  },
+  "title": {
+    "text": "$title",
+    "font": "$title_font",
+    "fontSize": $title_font_size
   }
 }
 EOJSON
@@ -197,6 +240,10 @@ grid:
   height: $grid_height
 simulation:
   blobCount: $blob_count
+title:
+  text: "$title"
+  font: $title_font
+  fontSize: $title_font_size
 EOYAML
                 ;;
             --md)
@@ -247,6 +294,13 @@ EOYAML
 | Property   | Value |
 |------------|-------|
 | Blob Count | $blob_count |
+
+## Title
+| Property  | Value |
+|-----------|-------|
+| Text      | ${title:--} |
+| Font      | $title_font |
+| Font Size | $title_font_size |
 EOMD
                 ;;
             --txt|*)
@@ -284,9 +338,130 @@ Grid
 
 Simulation
   Blob Count:   $blob_count
+
+Title
+  Text:         ${title:--}
+  Font:         $title_font
+  Font Size:    $title_font_size
 EOTXT
                 ;;
         esac
+        ;;
+    setup)
+        # Read YAML or JSON config from stdin and apply settings
+        if [ -t 0 ]; then
+            echo "Error: setup requires piped input"
+            echo "Usage: cat config.yaml | $(basename "$0") setup"
+            exit 1
+        fi
+
+        input=$(cat)
+
+        urls=$(echo "$input" | python3 -c '
+import sys, json
+from urllib.parse import quote
+
+def parse_simple_yaml(text):
+    """Parse the simple two-level YAML produced by stats --yaml."""
+    result = {}
+    current_section = None
+    for line in text.splitlines():
+        stripped = line.rstrip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not line.startswith(" ") and stripped.endswith(":"):
+            current_section = stripped[:-1]
+            result[current_section] = {}
+        elif line.startswith("  ") and current_section is not None and ":" in stripped:
+            key, _, val = stripped.partition(":")
+            key = key.strip()
+            val = val.strip()
+            # Remove surrounding quotes
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in ("\"", "'\''"):
+                val = val[1:-1]
+            # Convert types
+            if val in ("~", "null", ""):
+                val = None
+            elif val == "true":
+                val = True
+            elif val == "false":
+                val = False
+            else:
+                try:
+                    val = int(val)
+                except ValueError:
+                    try:
+                        val = float(val)
+                    except ValueError:
+                        pass
+            result[current_section][key] = val
+    return result
+
+input_text = sys.stdin.read()
+data = None
+
+try:
+    data = json.loads(input_text)
+except (json.JSONDecodeError, ValueError):
+    pass
+
+if data is None:
+    try:
+        data = parse_simple_yaml(input_text)
+    except Exception as e:
+        print(f"Error: Could not parse input as JSON or YAML: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if not isinstance(data, dict) or not data:
+    print("Error: Input must be a non-empty JSON/YAML object", file=sys.stderr)
+    sys.exit(1)
+
+# Color
+color = data.get("color", {})
+if isinstance(color, dict):
+    if "r" in color and "g" in color and "b" in color:
+        cr, cg, cb = color["r"], color["g"], color["b"]
+        print(f"lavalamp://set-color?r={cr}&g={cg}&b={cb}")
+    elif "hex" in color:
+        h = str(color["hex"]).lstrip("#")
+        print(f"lavalamp://set-color?hex={h}")
+
+# Speed
+speed = data.get("speed", {})
+if isinstance(speed, dict):
+    if "value" in speed:
+        sv = speed["value"]
+        print(f"lavalamp://set-speed?value={sv}")
+    elif "label" in speed:
+        sl = speed["label"]
+        print(f"lavalamp://set-speed?value={sl}")
+
+# Title
+title = data.get("title", {})
+if isinstance(title, dict):
+    if "text" in title and title["text"] is not None:
+        tt = quote(str(title["text"]))
+        print(f"lavalamp://set-title?text={tt}")
+    if "font" in title and title["font"] is not None:
+        tf = quote(str(title["font"]))
+        print(f"lavalamp://set-title-font?name={tf}")
+    if "fontSize" in title and title["fontSize"] is not None:
+        ts = title["fontSize"]
+        print(f"lavalamp://set-title-font-size?value={ts}")
+')
+
+        if [ $? -ne 0 ]; then
+            exit 1
+        fi
+
+        count=0
+        echo "$urls" | while IFS= read -r url; do
+            if [ -n "$url" ]; then
+                open_url "$url"
+                count=$((count + 1))
+                echo "Applied: $url"
+            fi
+        done
         ;;
     about)
         cat <<'EOF'
