@@ -91,7 +91,7 @@ case "$command" in
             echo "Error: set-title requires a text value (use '' to clear)"
             exit 1
         fi
-        encoded=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$*'))")
+        encoded=$(printf '%s' "$*" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))")
         open_url "${SCHEME}://set-title?text=${encoded}"
         ;;
     set-title-font)
@@ -99,7 +99,7 @@ case "$command" in
             echo "Error: set-title-font requires a font name"
             exit 1
         fi
-        encoded=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$1'))")
+        encoded=$(printf '%s' "$1" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))")
         open_url "${SCHEME}://set-title-font?name=${encoded}"
         ;;
     set-title-font-size)
