@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# lavalampctl - Control the Lava Lamp app via its URL scheme
+#
+# Usage:
+#   lavalampctl start                  Resume animation
+#   lavalampctl stop                   Pause animation
+#   lavalampctl toggle                 Toggle start/stop
+#   lavalampctl set-color FF6600       Set color by hex
+#   lavalampctl set-color 0.2 0.4 1.0  Set color by RGB floats (0.0-1.0)
+#   lavalampctl random-color           Pick a random color
+#   lavalampctl set-speed slow         Set speed (slow/normal/fast or float)
+#   lavalampctl quit                   Quit the app
+
+set -euo pipefail
+
+SCHEME="lavalamp"
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") <command> [args...]
+
+Commands:
+  start                      Resume animation
+  stop                       Pause animation
+  toggle                     Toggle start/stop
+  set-color <hex>            Set color by hex (e.g. FF6600 or #FF6600)
+  set-color <r> <g> <b>      Set color by RGB floats (0.0-1.0)
+  random-color               Pick a random harmonious color
+  set-speed <value>          Set speed: slow, normal, fast, or a float
+  quit                       Quit the app
+EOF
+    exit 1
+}
+
+if [ $# -lt 1 ]; then
+    usage
+fi
+
+command="$1"
+shift
+
+case "$command" in
+    start|stop|toggle|random-color|quit)
+        open "${SCHEME}://${command}"
+        ;;
+    set-color)
+        if [ $# -eq 1 ]; then
+            open "${SCHEME}://set-color?hex=$1"
+        elif [ $# -eq 3 ]; then
+            open "${SCHEME}://set-color?r=$1&g=$2&b=$3"
+        else
+            echo "Error: set-color requires 1 hex value or 3 RGB floats"
+            exit 1
+        fi
+        ;;
+    set-speed)
+        if [ $# -ne 1 ]; then
+            echo "Error: set-speed requires a value (slow/normal/fast or float)"
+            exit 1
+        fi
+        open "${SCHEME}://set-speed?value=$1"
+        ;;
+    *)
+        echo "Unknown command: $command"
+        usage
+        ;;
+esac
