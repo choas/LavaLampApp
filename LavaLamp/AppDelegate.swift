@@ -392,40 +392,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func parseColor(from params: [URLQueryItem]) -> NSColor? {
-        // Try hex first: ?hex=FF6600 or ?hex=#FF6600
-        if let hex = params.first(where: { $0.name == "hex" })?.value {
-            return colorFromHex(hex)
-        }
-        // Try r,g,b (0.0-1.0): ?r=0.2&g=0.4&b=1.0
-        if let rStr = params.first(where: { $0.name == "r" })?.value,
-           let gStr = params.first(where: { $0.name == "g" })?.value,
-           let bStr = params.first(where: { $0.name == "b" })?.value,
-           let r = Double(rStr), let g = Double(gStr), let b = Double(bStr) {
-            return NSColor(red: CGFloat(r), green: CGFloat(g), blue: CGFloat(b), alpha: 1.0)
-        }
-        return nil
+        return LavaLampUtils.parseColor(from: params)
     }
 
     private func colorFromHex(_ hex: String) -> NSColor? {
-        var h = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if h.hasPrefix("#") { h.removeFirst() }
-        guard h.count == 6, let val = UInt64(h, radix: 16) else { return nil }
-        let r = CGFloat((val >> 16) & 0xFF) / 255.0
-        let g = CGFloat((val >> 8) & 0xFF) / 255.0
-        let b = CGFloat(val & 0xFF) / 255.0
-        return NSColor(red: r, green: g, blue: b, alpha: 1.0)
+        return LavaLampUtils.colorFromHex(hex)
     }
 
     private func parseSpeed(from params: [URLQueryItem]) -> CGFloat? {
-        guard let value = params.first(where: { $0.name == "value" })?.value else { return nil }
-        switch value.lowercased() {
-        case "slow": return 0.25
-        case "normal": return 0.5
-        case "fast": return 1.0
-        default:
-            if let f = Double(value) { return CGFloat(f) }
-            return nil
-        }
+        return LavaLampUtils.parseSpeed(from: params)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
