@@ -11,6 +11,7 @@
 #   lavalampctl random-color           Pick a random color
 #   lavalampctl set-speed slow         Set speed (slow/normal/fast or float)
 #   lavalampctl quit                   Quit the app
+#   lavalampctl about                  Show app info
 
 set -euo pipefail
 
@@ -29,6 +30,7 @@ Commands:
   random-color               Pick a random harmonious color
   set-speed <value>          Set speed: slow, normal, fast, or a float
   quit                       Quit the app
+  about                      Show app info
 EOF
     exit 1
 }
@@ -60,6 +62,49 @@ case "$command" in
             exit 1
         fi
         open "${SCHEME}://set-speed?value=$1"
+        ;;
+    about)
+        cat <<'EOF'
+
+         ██████
+        ████████
+       ██████████
+      ████████████
+      ██  ████████
+      █ ██  ██████
+      ████  ██████
+      ██████  ████
+      ████  ██  ██
+      ██████  ████
+      ████████████
+      ████████████
+      ████████████
+      ████████████
+       ██████████
+        ████████
+       ██████████
+      ████████████
+     ██████████████
+     ██████████████
+      ████████████
+
+       LavaLamp App
+
+  ─────────────────────────
+  LARS GREGORI
+  ─────────────────────────
+
+  Work:       Technology Strategist
+  LinkedIn:   linkedin.com/in/lars-gregori
+  GitHub:     github.com/choas
+  BlueSky:    bsky.app/profile/choas.net
+  Mastodon:   mastodon.social/@choas
+  Web:        larsgregori.de
+  Apps:       apps.larsgregori.de
+
+  Card:       npx choas-card
+
+EOF
         ;;
     *)
         echo "Unknown command: $command"
