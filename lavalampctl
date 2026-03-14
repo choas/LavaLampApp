@@ -12,6 +12,7 @@
 #   lavalampctl set-speed slow         Set speed (slow/normal/fast or float)
 #   lavalampctl quit                   Quit the app
 #   lavalampctl about                  Show app info
+#   lavalampctl stats [--json|--yaml|--txt|--md]  Show lamp stats
 
 set -euo pipefail
 
@@ -31,6 +32,8 @@ Commands:
   set-speed <value>          Set speed: slow, normal, fast, or a float
   quit                       Quit the app
   about                      Show app info
+  stats [--json|--yaml|--txt|--md]
+                             Show lamp stats (default: --txt)
 EOF
     exit 1
 }
@@ -62,6 +65,224 @@ case "$command" in
             exit 1
         fi
         open "${SCHEME}://set-speed?value=$1"
+        ;;
+    stats)
+        BUNDLE_ID="com.lavalamp.LavaLamp"
+        FORMAT="${1:---txt}"
+
+        # Check if app is running
+        if pgrep -x "LavaLamp" > /dev/null 2>&1; then
+            app_running="true"
+            app_pid=$(pgrep -x "LavaLamp")
+        else
+            app_running="false"
+            app_pid=""
+        fi
+
+        # Read settings from UserDefaults
+        read_default() {
+            defaults read "$BUNDLE_ID" "$1" 2>/dev/null || echo ""
+        }
+
+        color_r=$(read_default "lavaColorR")
+        color_g=$(read_default "lavaColorG")
+        color_b=$(read_default "lavaColorB")
+        speed=$(read_default "speed")
+        pixel_scale=$(read_default "pixelScale")
+        window_x=$(read_default "windowPositionX")
+        window_y=$(read_default "windowPositionY")
+
+        # Defaults if not set
+        color_r="${color_r:-1}"
+        color_g="${color_g:-0.4}"
+        color_b="${color_b:-0}"
+        speed="${speed:-0.5}"
+        pixel_scale="${pixel_scale:-2}"
+
+        # Convert RGB floats to hex
+        to_hex_component() {
+            printf '%02X' "$(printf '%.0f' "$(echo "$1 * 255" | bc)")"
+        }
+        hex_r=$(to_hex_component "$color_r")
+        hex_g=$(to_hex_component "$color_g")
+        hex_b=$(to_hex_component "$color_b")
+        color_hex="#${hex_r}${hex_g}${hex_b}"
+
+        # Speed label
+        case "$speed" in
+            0.25) speed_label="slow" ;;
+            0.5)  speed_label="normal" ;;
+            1|1.0) speed_label="fast" ;;
+            *)    speed_label="custom" ;;
+        esac
+
+        # Size label
+        case "$pixel_scale" in
+            1.5) size_label="small" ;;
+            2|2.0) size_label="medium" ;;
+            2.5) size_label="large" ;;
+            *)   size_label="custom" ;;
+        esac
+
+        # Grid dimensions
+        grid_width=48
+        grid_height=120
+        blob_count=5
+
+        case "$FORMAT" in
+            --json)
+                cat <<EOJSON
+{
+  "app": {
+    "name": "LavaLamp",
+    "bundleId": "$BUNDLE_ID",
+    "running": $app_running,
+    "pid": ${app_pid:-null}
+  },
+  "color": {
+    "hex": "$color_hex",
+    "r": $color_r,
+    "g": $color_g,
+    "b": $color_b
+  },
+  "speed": {
+    "value": $speed,
+    "label": "$speed_label"
+  },
+  "size": {
+    "pixelScale": $pixel_scale,
+    "label": "$size_label"
+  },
+  "window": {
+    "x": ${window_x:-null},
+    "y": ${window_y:-null}
+  },
+  "grid": {
+    "width": $grid_width,
+    "height": $grid_height
+  },
+  "simulation": {
+    "blobCount": $blob_count
+  }
+}
+EOJSON
+                ;;
+            --yaml)
+                cat <<EOYAML
+app:
+  name: LavaLamp
+  bundleId: $BUNDLE_ID
+  running: $app_running
+  pid: ${app_pid:-~}
+color:
+  hex: "$color_hex"
+  r: $color_r
+  g: $color_g
+  b: $color_b
+speed:
+  value: $speed
+  label: $speed_label
+size:
+  pixelScale: $pixel_scale
+  label: $size_label
+window:
+  x: ${window_x:-~}
+  y: ${window_y:-~}
+grid:
+  width: $grid_width
+  height: $grid_height
+simulation:
+  blobCount: $blob_count
+EOYAML
+                ;;
+            --md)
+                cat <<EOMD
+# LavaLamp Stats
+
+## App
+| Property  | Value |
+|-----------|-------|
+| Name      | LavaLamp |
+| Bundle ID | $BUNDLE_ID |
+| Running   | $app_running |
+| PID       | ${app_pid:--} |
+
+## Color
+| Property | Value |
+|----------|-------|
+| Hex      | $color_hex |
+| R        | $color_r |
+| G        | $color_g |
+| B        | $color_b |
+
+## Speed
+| Property | Value |
+|----------|-------|
+| Value    | $speed |
+| Label    | $speed_label |
+
+## Size
+| Property    | Value |
+|-------------|-------|
+| Pixel Scale | $pixel_scale |
+| Label       | $size_label |
+
+## Window
+| Property | Value |
+|----------|-------|
+| X        | ${window_x:--} |
+| Y        | ${window_y:--} |
+
+## Grid
+| Property | Value |
+|----------|-------|
+| Width    | $grid_width |
+| Height   | $grid_height |
+
+## Simulation
+| Property   | Value |
+|------------|-------|
+| Blob Count | $blob_count |
+EOMD
+                ;;
+            --txt|*)
+                cat <<EOTXT
+LavaLamp Stats
+==============
+
+App
+  Name:         LavaLamp
+  Bundle ID:    $BUNDLE_ID
+  Running:      $app_running
+  PID:          ${app_pid:--}
+
+Color
+  Hex:          $color_hex
+  R:            $color_r
+  G:            $color_g
+  B:            $color_b
+
+Speed
+  Value:        $speed
+  Label:        $speed_label
+
+Size
+  Pixel Scale:  $pixel_scale
+  Label:        $size_label
+
+Window
+  X:            ${window_x:--}
+  Y:            ${window_y:--}
+
+Grid
+  Width:        $grid_width
+  Height:       $grid_height
+
+Simulation
+  Blob Count:   $blob_count
+EOTXT
+                ;;
+        esac
         ;;
     about)
         cat <<'EOF'
