@@ -13,6 +13,9 @@
 #   lavalampctl set-title "My Lamp"   Set title below the lamp
 #   lavalampctl set-title-font Menlo  Set title font name
 #   lavalampctl set-title-font-size 14 Set title font size
+#   lavalampctl http --port <number>   Start HTTP server on port
+#   lavalampctl http --stop            Stop HTTP server
+#   lavalampctl web [--port <number>]  Open web UI (default port 8080)
 #   lavalampctl quit                   Quit the app
 #   lavalampctl about                  Show app info
 #   lavalampctl stats [--json|--yaml|--txt|--md]  Show lamp stats
@@ -41,6 +44,9 @@ Commands:
   set-title <text>           Set title below the lamp (empty to clear)
   set-title-font <name>      Set title font name (e.g. Menlo, Helvetica)
   set-title-font-size <size> Set title font size (e.g. 14)
+  http --port <number>       Start HTTP server on port
+  http --stop                Stop HTTP server
+  web [--port <number>]      Open web control panel (default port 8080)
   quit                       Quit the app
   about                      Show app info
   stats [--json|--yaml|--txt|--md]
@@ -102,6 +108,29 @@ case "$command" in
         fi
         open_url "${SCHEME}://set-title-font-size?value=$1"
         ;;
+    web)
+        port=8080
+        if [ $# -eq 2 ] && [ "$1" = "--port" ]; then
+            port="$2"
+        elif [ $# -ne 0 ]; then
+            echo "Error: usage: web [--port <number>]"
+            exit 1
+        fi
+        open_url "${SCHEME}://web?port=${port}"
+        echo "Opening web control panel on http://localhost:${port}/"
+        ;;
+    http)
+        if [ $# -eq 2 ] && [ "$1" = "--port" ]; then
+            open_url "${SCHEME}://http?port=$2"
+            echo "HTTP server starting on port $2"
+        elif [ $# -eq 1 ] && [ "$1" = "--stop" ]; then
+            open_url "${SCHEME}://http?action=stop"
+            echo "HTTP server stopping"
+        else
+            echo "Error: usage: http --port <number> | http --stop"
+            exit 1
+        fi
+        ;;
     stats)
         BUNDLE_ID="com.lavalamp.LavaLamp"
         FORMAT="${1:---txt}"
@@ -130,6 +159,7 @@ case "$command" in
         title=$(read_default "title")
         title_font=$(read_default "titleFont")
         title_font_size=$(read_default "titleFontSize")
+        http_port=$(read_default "httpPort")
 
         # Defaults if not set
         title="${title:-}"
@@ -140,6 +170,7 @@ case "$command" in
         color_b="${color_b:-0}"
         speed="${speed:-0.5}"
         pixel_scale="${pixel_scale:-2}"
+        http_port="${http_port:-0}"
 
         # Convert RGB floats to hex
         to_hex_component() {
@@ -210,6 +241,9 @@ case "$command" in
     "text": "$title",
     "font": "$title_font",
     "fontSize": $title_font_size
+  },
+  "http": {
+    "port": $http_port
   }
 }
 EOJSON
@@ -244,6 +278,8 @@ title:
   text: "$title"
   font: $title_font
   fontSize: $title_font_size
+http:
+  port: $http_port
 EOYAML
                 ;;
             --md)
@@ -301,6 +337,11 @@ EOYAML
 | Text      | ${title:--} |
 | Font      | $title_font |
 | Font Size | $title_font_size |
+
+## HTTP
+| Property | Value |
+|----------|-------|
+| Port     | $http_port |
 EOMD
                 ;;
             --txt|*)
@@ -343,6 +384,9 @@ Title
   Text:         ${title:--}
   Font:         $title_font
   Font Size:    $title_font_size
+
+HTTP
+  Port:         $http_port
 EOTXT
                 ;;
         esac
@@ -448,6 +492,13 @@ if isinstance(title, dict):
     if "fontSize" in title and title["fontSize"] is not None:
         ts = title["fontSize"]
         print(f"lavalamp://set-title-font-size?value={ts}")
+
+# HTTP
+http = data.get("http", {})
+if isinstance(http, dict):
+    if "port" in http and http["port"] is not None and int(http["port"]) > 0:
+        hp = int(http["port"])
+        print(f"lavalamp://http?port={hp}")
 ')
 
         if [ $? -ne 0 ]; then

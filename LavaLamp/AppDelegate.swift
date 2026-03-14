@@ -11,6 +11,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var titleText: String = ""
     private var titleFontName: String = "Helvetica"
     private var titleFontSize: CGFloat = 12.0
+    private var httpServer = HTTPServer()
 
     // UserDefaults keys
     private let kWindowX = "windowPositionX"
@@ -23,6 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let kTitle = "title"
     private let kTitleFont = "titleFont"
     private let kTitleFontSize = "titleFontSize"
+    private let kHTTPPort = "httpPort"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Register URL scheme handler directly via Apple Events
@@ -62,6 +64,48 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if defaults.object(forKey: kTitleFontSize) != nil {
             titleFontSize = CGFloat(defaults.double(forKey: kTitleFontSize))
         }
+
+        // Restore HTTP server if a port was saved
+        let savedPort = defaults.integer(forKey: kHTTPPort)
+        if savedPort > 0 {
+            startHTTPServer(port: UInt16(savedPort))
+        }
+    }
+
+    private func startHTTPServer(port: UInt16) {
+        httpServer.onCommand = { [weak self] url in
+            self?.handleURL(url)
+        }
+        httpServer.onStatus = { [weak self] in
+            self?.getCurrentStatus() ?? [:]
+        }
+        do {
+            try httpServer.start(port: port)
+            UserDefaults.standard.set(Int(port), forKey: kHTTPPort)
+        } catch {
+            print("Failed to start HTTP server: \(error)")
+        }
+    }
+
+    private func getCurrentStatus() -> [String: Any] {
+        let c = scene.lavaColor.usingColorSpace(.sRGB) ?? scene.lavaColor
+        return [
+            "color": [
+                "r": Double(c.redComponent),
+                "g": Double(c.greenComponent),
+                "b": Double(c.blueComponent)
+            ],
+            "speed": Double(scene.speedMultiplier),
+            "paused": scene.isPaused,
+            "title": titleText,
+            "titleFont": titleFontName,
+            "titleFontSize": Double(titleFontSize)
+        ]
+    }
+
+    private func stopHTTPServer() {
+        httpServer.stop()
+        UserDefaults.standard.removeObject(forKey: kHTTPPort)
     }
 
     private var titleAreaHeight: CGFloat {
@@ -246,6 +290,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 titleFontSize = CGFloat(size)
                 UserDefaults.standard.set(size, forKey: kTitleFontSize)
                 updateTitleDisplay()
+            }
+
+        case "web":
+            let port: UInt16
+            if let portStr = params.first(where: { $0.name == "port" })?.value,
+               let p = UInt16(portStr), p > 0 {
+                port = p
+            } else if httpServer.port > 0 {
+                port = httpServer.port
+            } else {
+                port = 8080
+            }
+            if httpServer.port == 0 {
+                startHTTPServer(port: port)
+            }
+            NSWorkspace.shared.open(URL(string: "http://localhost:\(port)/")!)
+
+        case "http":
+            if let portStr = params.first(where: { $0.name == "port" })?.value,
+               let port = UInt16(portStr), port > 0 {
+                startHTTPServer(port: port)
+            } else if let action = params.first(where: { $0.name == "action" })?.value,
+                      action == "stop" {
+                stopHTTPServer()
             }
 
         case "quit":
