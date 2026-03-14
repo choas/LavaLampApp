@@ -64,9 +64,8 @@ class PixelGridRenderer {
                     let dx = CGFloat(x) - blob.x
                     let dy = CGFloat(y) - blob.y
                     let distSq = dx * dx + dy * dy
-                    if distSq > 0.01 {
-                        field += (blob.radius * blob.radius) / distSq
-                    }
+                    let clampedDistSq = max(distSq, 0.01)
+                    field += (blob.radius * blob.radius) / clampedDistSq
                 }
 
                 let idx = y * width + x
