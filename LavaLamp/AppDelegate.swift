@@ -12,6 +12,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var titleFontName: String = "Helvetica"
     private var titleFontSize: CGFloat = 12.0
     private var httpServer = HTTPServer()
+    private var titleTimer: Timer?
 
     // UserDefaults keys
     private let kWindowX = "windowPositionX"
@@ -108,6 +109,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.removeObject(forKey: kHTTPPort)
     }
 
+    private var isTitleDynamic: Bool {
+        titleText == "$time"
+    }
+
+    private var titleDisplayString: String {
+        if isTitleDynamic {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm:ss"
+            return formatter.string(from: Date())
+        }
+        return titleText
+    }
+
     private var titleAreaHeight: CGFloat {
         titleText.isEmpty ? 0 : titleFontSize + 8
     }
@@ -159,7 +173,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         containerView.addSubview(skView)
 
         // Title label below the lamp
-        titleLabel = NSTextField(labelWithString: titleText)
+        titleLabel = NSTextField(labelWithString: titleDisplayString)
         titleLabel.frame = NSRect(x: 0, y: 0, width: windowWidth, height: titleAreaHeight)
         titleLabel.alignment = .center
         titleLabel.textColor = .white
@@ -172,6 +186,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window.contentView = containerView
         window.makeKeyAndOrderFront(nil)
+
+        // Start timer if title is dynamic (e.g. "$time")
+        configureTitleTimer()
     }
 
     private func setupMenuBar() {
@@ -328,9 +345,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let oldTitleHeight = titleLabel.isHidden ? CGFloat(0) : titleLabel.frame.height
         let newTitleHeight = titleAreaHeight
 
-        titleLabel.stringValue = titleText
+        titleLabel.stringValue = titleDisplayString
         titleLabel.font = NSFont(name: titleFontName, size: titleFontSize) ?? NSFont.systemFont(ofSize: titleFontSize)
         titleLabel.isHidden = titleText.isEmpty
+
+        // Manage the timer for dynamic titles
+        configureTitleTimer()
 
         // Resize window and reposition views if title area height changed
         if oldTitleHeight != newTitleHeight {
@@ -356,6 +376,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             titleLabel.frame = NSRect(x: 0, y: 0, width: windowWidth, height: newTitleHeight)
+        }
+    }
+
+    private func configureTitleTimer() {
+        titleTimer?.invalidate()
+        titleTimer = nil
+
+        if isTitleDynamic {
+            titleTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                self.titleLabel.stringValue = self.titleDisplayString
+            }
         }
     }
 
