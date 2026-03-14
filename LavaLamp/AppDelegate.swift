@@ -18,12 +18,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let kPixelScale = "pixelScale"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Register URL scheme handler directly via Apple Events
+        // (application(_:open:) is not called in SwiftUI lifecycle apps)
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleGetURLEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+
         loadSettings()
         setupWindow()
         setupScene()
         setupMenuBar()
         setupClickHandler()
         restoreWindowPosition()
+    }
+
+    @objc private func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
+        guard let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
+              let url = URL(string: urlString) else { return }
+        handleURL(url)
     }
 
     private func loadSettings() {
