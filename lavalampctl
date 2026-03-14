@@ -515,42 +515,33 @@ if isinstance(http, dict):
         done
         ;;
     about)
-        cat <<'EOF'
+        SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+        VERSION=$(grep 'MARKETING_VERSION' "$SCRIPT_DIR/LavaLamp.xcodeproj/project.pbxproj" | head -1 | sed 's/.*= *\(.*\);/\1/' | tr -d ' ')
+        cat <<EOF
 
            ███
          ███████
-        /-------\
-       /   ██    \
-      /   ████    \
+        /-------\\
+       /   ██    \\
+      /   ████    \\
      |   ██████    |
     |    ██████     |
     |     ████      |
     |      ██       |
     |               |
      |    ████     |
-      \  ██████   /
-       \  ████   /
-        \-------/
+      \\  ██████   /
+       \\  ████   /
+        \\-------/
        ███████████
       █████████████
      ███████████████
     █████████████████
 
        LavaLamp App
+         v${VERSION}
 
-  ─────────────────────────
-  LARS GREGORI
-  ─────────────────────────
-
-  Work:       Technology Strategist
-  LinkedIn:   linkedin.com/in/lars-gregori
-  GitHub:     github.com/choas
-  BlueSky:    bsky.app/profile/choas.net
-  Mastodon:   mastodon.social/@choas
-  Web:        larsgregori.de
-  Apps:       apps.larsgregori.de
-
-  Card:       npx choas-card
+  https://github.com/choas/LavaLampApp
 
 EOF
         ;;
