@@ -3,7 +3,7 @@ import CoreGraphics
 enum LampConfig {
     static let gridWidth = 48
     static let gridHeight = 120
-    static let defaultPixelScale: CGFloat = 4.0
+    static let defaultPixelScale: CGFloat = 2.0
     static let defaultBlobCount = 5
 
     // Glass shape

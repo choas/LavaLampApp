@@ -17,9 +17,9 @@ class MenuBarController {
 
         var scale: CGFloat {
             switch self {
-            case .small: return 3.0
-            case .medium: return 4.0
-            case .large: return 5.0
+            case .small: return 1.5
+            case .medium: return 2.0
+            case .large: return 2.5
             }
         }
     }
@@ -67,15 +67,15 @@ class MenuBarController {
         let speedItem = NSMenuItem(title: "Speed", action: nil, keyEquivalent: "")
         let speedSubmenu = NSMenu()
         let speeds: [(String, CGFloat)] = [
-            ("Slow", 0.5),
-            ("Normal", 1.0),
-            ("Fast", 2.0),
+            ("Slow", 0.25),
+            ("Normal", 0.5),
+            ("Fast", 1.0),
         ]
         for (name, speed) in speeds {
             let item = NSMenuItem(title: name, action: #selector(speedSelected(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = speed
-            if speed == 1.0 {
+            if speed == 0.5 {
                 item.state = .on
             }
             speedSubmenu.addItem(item)
