@@ -15,6 +15,7 @@
 		A10000010000000000000006 /* LavaLampScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000006 /* LavaLampScene.swift */; };
 		A10000010000000000000007 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000007 /* MenuBarController.swift */; };
 		A10000010000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000008 /* Assets.xcassets */; };
+		A10000010000000000000009 /* LampConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000012 /* LampConfig.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 		A20000010000000000000009 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000010000000000000010 /* LavaLamp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LavaLamp.entitlements; sourceTree = "<group>"; };
 		A20000010000000000000011 /* LavaLamp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LavaLamp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000010000000000000012 /* LampConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LampConfig.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +55,7 @@
 		A40000010000000000000002 /* LavaLamp */ = {
 			isa = PBXGroup;
 			children = (
+				A20000010000000000000012 /* LampConfig.swift */,
 				A20000010000000000000001 /* LavaLampApp.swift */,
 				A20000010000000000000002 /* AppDelegate.swift */,
 				A20000010000000000000003 /* TransparentWindow.swift */,
@@ -151,6 +154,7 @@
 				A10000010000000000000005 /* PixelGridRenderer.swift in Sources */,
 				A10000010000000000000006 /* LavaLampScene.swift in Sources */,
 				A10000010000000000000007 /* MenuBarController.swift in Sources */,
+				A10000010000000000000009 /* LampConfig.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

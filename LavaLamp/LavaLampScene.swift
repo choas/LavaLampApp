@@ -6,14 +6,10 @@ class LavaLampScene: SKScene {
     private var renderer: PixelGridRenderer!
     private var textureNode: SKSpriteNode!
 
-    private let gridWidth = 48
-    private let gridHeight = 120
-    private let pixelScale: CGFloat = 4.0
-
     var lavaColor: NSColor = .orange {
         didSet { needsRedraw = true }
     }
-    var speedMultiplier: CGFloat = 1.0
+    var speedMultiplier: CGFloat = 0.5
     var targetFrameRate: CGFloat = 15.0
 
     private var needsRedraw = true
@@ -24,12 +20,10 @@ class LavaLampScene: SKScene {
         backgroundColor = .clear
         view.allowsTransparency = true
 
-        simulation = LavaSimulation(gridWidth: gridWidth, gridHeight: gridHeight, blobCount: 5)
-        renderer = PixelGridRenderer(width: gridWidth, height: gridHeight)
+        simulation = LavaSimulation()
+        renderer = PixelGridRenderer()
 
-        let nodeWidth = CGFloat(gridWidth) * pixelScale
-        let nodeHeight = CGFloat(gridHeight) * pixelScale
-        textureNode = SKSpriteNode(color: .clear, size: CGSize(width: nodeWidth, height: nodeHeight))
+        textureNode = SKSpriteNode(color: .clear, size: self.size)
         textureNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         textureNode.texture?.filteringMode = .nearest // crisp pixels
         addChild(textureNode)
@@ -64,6 +58,8 @@ class LavaLampScene: SKScene {
     }
 
     private func createTexture(from pixels: [PixelColor]) -> SKTexture {
+        let gridWidth = LampConfig.gridWidth
+        let gridHeight = LampConfig.gridHeight
         var rgba = [UInt8](repeating: 0, count: gridWidth * gridHeight * 4)
 
         for y in 0..<gridHeight {
@@ -83,7 +79,7 @@ class LavaLampScene: SKScene {
         let data = Data(rgba)
         let texture = SKTexture(
             data: data,
-            size: CGSize(width: gridWidth, height: gridHeight)
+            size: CGSize(width: LampConfig.gridWidth, height: LampConfig.gridHeight)
         )
         texture.filteringMode = .nearest
         return texture

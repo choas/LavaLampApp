@@ -14,26 +14,14 @@ class PixelGridRenderer {
     let height: Int
     private var pixelBuffer: [PixelColor]
 
-    // Glass shape parameters
-    private let glassTop: Int = 12
-    private let glassBottom: Int = 110
-    private let capTop: Int = 6
-    private let capBottom: Int = 12
-    private let baseTop: Int = 110
-    private let baseBottom: Int = 118
-
-    init(width: Int = 48, height: Int = 120) {
+    init(width: Int = LampConfig.gridWidth, height: Int = LampConfig.gridHeight) {
         self.width = width
         self.height = height
         self.pixelBuffer = Array(repeating: PixelColor(r: 0, g: 0, b: 0, a: 0), count: width * height)
     }
 
     func glassHalfWidth(atRow y: Int) -> CGFloat {
-        let glassCenter = CGFloat(glassTop + glassBottom) / 2
-        let halfHeight = CGFloat(glassBottom - glassTop) / 2
-        let normalizedDist = abs(CGFloat(y) - glassCenter) / halfHeight
-        let taper = 1.0 - 0.3 * normalizedDist * normalizedDist
-        return 16.0 * taper // max half-width of glass
+        return LampConfig.glassHalfWidth(atRow: CGFloat(y))
     }
 
     func render(simulation: LavaSimulation, lavaColor: NSColor) -> [PixelColor] {
@@ -65,7 +53,7 @@ class PixelGridRenderer {
         let glowHigh: CGFloat = 1.4
 
         // Render lava using metaball field
-        for y in glassTop..<glassBottom {
+        for y in LampConfig.glassTop..<LampConfig.glassBottom {
             let hw = glassHalfWidth(atRow: y)
             let left = Int(centerX - hw) + 1
             let right = Int(centerX + hw) - 1
@@ -116,7 +104,7 @@ class PixelGridRenderer {
     private func drawGlassOutline(centerX: CGFloat) {
         let outlineColor = PixelColor(r: 180, g: 200, b: 210, a: 160)
 
-        for y in glassTop...glassBottom {
+        for y in LampConfig.glassTop...LampConfig.glassBottom {
             let hw = glassHalfWidth(atRow: y)
             let left = Int(centerX - hw)
             let right = Int(centerX + hw)
@@ -125,15 +113,15 @@ class PixelGridRenderer {
         }
 
         // Top edge connecting to cap
-        let topHw = Int(glassHalfWidth(atRow: glassTop))
+        let topHw = Int(glassHalfWidth(atRow: LampConfig.glassTop))
         for x in (Int(centerX) - topHw)...(Int(centerX) + topHw) {
-            setPixel(x: x, y: glassTop, color: outlineColor)
+            setPixel(x: x, y: LampConfig.glassTop, color: outlineColor)
         }
 
         // Bottom edge connecting to base
-        let bottomHw = Int(glassHalfWidth(atRow: glassBottom))
+        let bottomHw = Int(glassHalfWidth(atRow: LampConfig.glassBottom))
         for x in (Int(centerX) - bottomHw)...(Int(centerX) + bottomHw) {
-            setPixel(x: x, y: glassBottom, color: outlineColor)
+            setPixel(x: x, y: LampConfig.glassBottom, color: outlineColor)
         }
     }
 
@@ -145,15 +133,15 @@ class PixelGridRenderer {
         let topKnobHalf: Int = 3
 
         // Main cap body
-        for y in (capTop + 2)..<capBottom {
+        for y in (LampConfig.capTop + 2)..<LampConfig.capBottom {
             for x in (Int(centerX) - capHalfWidth)...(Int(centerX) + capHalfWidth) {
-                let color = (y == capTop + 2) ? metalHighlight : metalColor
+                let color = (y == LampConfig.capTop + 2) ? metalHighlight : metalColor
                 setPixel(x: x, y: y, color: color)
             }
         }
 
         // Top knob
-        for y in capTop...(capTop + 2) {
+        for y in LampConfig.capTop...(LampConfig.capTop + 2) {
             for x in (Int(centerX) - topKnobHalf)...(Int(centerX) + topKnobHalf) {
                 setPixel(x: x, y: y, color: metalHighlight)
             }
@@ -165,11 +153,11 @@ class PixelGridRenderer {
         let metalHighlight = PixelColor(r: 160, g: 160, b: 170, a: 255)
 
         // Base widens toward bottom
-        for y in baseTop...baseBottom {
-            let progress = CGFloat(y - baseTop) / CGFloat(baseBottom - baseTop)
+        for y in LampConfig.baseTop...LampConfig.baseBottom {
+            let progress = CGFloat(y - LampConfig.baseTop) / CGFloat(LampConfig.baseBottom - LampConfig.baseTop)
             let halfWidth = Int(12 + progress * 6)
             for x in (Int(centerX) - halfWidth)...(Int(centerX) + halfWidth) {
-                let color = (y == baseTop) ? metalHighlight : metalColor
+                let color = (y == LampConfig.baseTop) ? metalHighlight : metalColor
                 setPixel(x: x, y: y, color: color)
             }
         }

@@ -22,7 +22,7 @@ class LavaSimulation {
     private let dragFactor: CGFloat = 0.98
     private let driftStrength: CGFloat = 3.0
 
-    init(gridWidth: Int = 48, gridHeight: Int = 120, blobCount: Int = 5) {
+    init(gridWidth: Int = LampConfig.gridWidth, gridHeight: Int = LampConfig.gridHeight, blobCount: Int = LampConfig.defaultBlobCount) {
         self.gridWidth = gridWidth
         self.gridHeight = gridHeight
         self.blobs = []
@@ -43,19 +43,8 @@ class LavaSimulation {
     func update(dt: CGFloat, speedMultiplier: CGFloat = 1.0) {
         let effectiveDt = dt * speedMultiplier
 
-        let glassLeft: CGFloat = 8
-        let glassRight = CGFloat(gridWidth) - 8
-        let glassTop: CGFloat = 12
-        let glassBottom = CGFloat(gridHeight) - 10
-
-        // The glass tapers toward top and bottom
-        func glassHalfWidth(atY y: CGFloat) -> CGFloat {
-            let center = (glassTop + glassBottom) / 2
-            let halfHeight = (glassBottom - glassTop) / 2
-            let normalizedDist = abs(y - center) / halfHeight
-            let taper = 1.0 - 0.3 * normalizedDist * normalizedDist
-            return ((glassRight - glassLeft) / 2) * taper
-        }
+        let glassTop = CGFloat(LampConfig.glassTop)
+        let glassBottom = CGFloat(LampConfig.glassBottom)
 
         for i in 0..<blobs.count {
             // Heating near bottom, cooling near top
@@ -92,7 +81,7 @@ class LavaSimulation {
 
             // Wall collisions (glass shape)
             let centerX = CGFloat(gridWidth) / 2
-            let hw = glassHalfWidth(atY: blobs[i].y)
+            let hw = LampConfig.glassHalfWidth(atRow: blobs[i].y)
             let leftBound = centerX - hw + blobs[i].radius * 0.5
             let rightBound = centerX + hw - blobs[i].radius * 0.5
 

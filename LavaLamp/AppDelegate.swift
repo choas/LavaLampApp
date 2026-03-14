@@ -6,9 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var scene: LavaLampScene!
     private var menuBarController: MenuBarController!
 
-    private let gridWidth = 48
-    private let gridHeight = 120
-    private var pixelScale: CGFloat = 4.0
+    private var pixelScale: CGFloat = LampConfig.defaultPixelScale
 
     // UserDefaults keys
     private let kWindowX = "windowPositionX"
@@ -24,6 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupWindow()
         setupScene()
         setupMenuBar()
+        setupClickHandler()
         restoreWindowPosition()
     }
 
@@ -35,8 +34,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupWindow() {
-        let windowWidth = CGFloat(gridWidth) * pixelScale
-        let windowHeight = CGFloat(gridHeight) * pixelScale
+        let windowWidth = CGFloat(LampConfig.gridWidth) * pixelScale
+        let windowHeight = CGFloat(LampConfig.gridHeight) * pixelScale
 
         let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 800, height: 600)
         let windowRect = NSRect(
@@ -50,8 +49,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupScene() {
-        let windowWidth = CGFloat(gridWidth) * pixelScale
-        let windowHeight = CGFloat(gridHeight) * pixelScale
+        let windowWidth = CGFloat(LampConfig.gridWidth) * pixelScale
+        let windowHeight = CGFloat(LampConfig.gridHeight) * pixelScale
         let sceneSize = CGSize(width: windowWidth, height: windowHeight)
 
         scene = LavaLampScene(size: sceneSize)
@@ -102,6 +101,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func setupClickHandler() {
+        window.onClicked = { [weak self] in
+            let color = Self.randomHarmoniousColor()
+            self?.scene.lavaColor = color
+            self?.saveColor(color)
+        }
+    }
+
+    private static func randomHarmoniousColor() -> NSColor {
+        // Pick a random base hue
+        let hue = CGFloat.random(in: 0...1)
+        // Keep saturation and brightness in ranges that produce vivid, attractive lava colors
+        let saturation = CGFloat.random(in: 0.6...1.0)
+        let brightness = CGFloat.random(in: 0.7...1.0)
+        return NSColor(hue: hue, saturation: saturation, brightness: brightness, alpha: 1.0)
+    }
+
     private func saveColor(_ color: NSColor) {
         let c = color.usingColorSpace(.sRGB) ?? color
         UserDefaults.standard.set(Double(c.redComponent), forKey: kLavaColorR)
@@ -128,8 +144,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pixelScale = scale
         UserDefaults.standard.set(Double(scale), forKey: kPixelScale)
 
-        let newWidth = CGFloat(gridWidth) * scale
-        let newHeight = CGFloat(gridHeight) * scale
+        let newWidth = CGFloat(LampConfig.gridWidth) * scale
+        let newHeight = CGFloat(LampConfig.gridHeight) * scale
 
         // Keep center position
         let oldCenter = NSPoint(
