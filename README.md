@@ -86,6 +86,8 @@ lavalampctl quit                         # Quit the app
 
 The `stats` command reads directly from UserDefaults, so it works even without the app running. The output of `stats --yaml` or `stats --json` can be piped back through `setup` to restore settings.
 
+An example configuration is included in `example/nice_green.yaml`.
+
 ## HTTP Server & Web UI
 
 Start a built-in HTTP server to control the lamp from a browser or via HTTP requests:
@@ -141,6 +143,10 @@ lavalamp://quit
 | `MenuBarController.swift` | Menu bar icon and dropdown controls |
 | `HTTPServer.swift` | Lightweight HTTP server and web UI using Network.framework |
 | `LampConfig.swift` | Grid dimensions, glass geometry, defaults |
+
+## License
+
+Apache License 2.0 -- see [LICENSE](LICENSE) for details.
 
 ## Author
 
